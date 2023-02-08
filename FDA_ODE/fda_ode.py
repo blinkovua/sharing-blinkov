@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+
 from sympy import *
 
 from monom import *
@@ -121,11 +123,11 @@ def compact(f):
 def prn(a, p=None):
     if p:
         for i in range(pda_clp):
-            print("h^%d =>" % i)
+            print("%s^%d =>" % (pda_h,  i))
             display(compact(a[i]).collect(p, factor))
     else:
         for i in range(pda_clp):
-            print("h^%d =>" % i)
+            print("%s^%d =>" % (pda_h,  i))
             display(compact(a[i]).factor())
 
 
@@ -148,3 +150,63 @@ def prnlatex(a, p=None):
             print(r"+%s^%d\big(" % (pda_h, i))
             print(latex(compact(a[i]).factor()))
             print(r"\big)")
+
+
+if __name__ == '__main__':
+    eps, t, h = symbols(r'\varepsilon, t, h', real=True)
+    u, u1 = (f(t) for f in symbols('u, u1', cls=Function))
+
+    eq = u.diff(t, 2)  + u + eps*u**3
+    print(eq)
+    print()
+
+    eq1 = (u.diff(t)**2/2 + u**2/2 + eps*u**4/4) - h
+    print(expand(eq1.diff(t) - eq*u.diff(t)))
+    print()
+
+    init((u, u1), t, h)
+    set_clip(8, 7, Rational(0, 1))
+
+    print(expand((T(u, 1)-T(u, -1))/(2*h)))
+    print()
+
+    def RungeKutta4(f, y):
+        k1 = f(y)
+        k2 = f(y + h*k1/2)
+        k3 = f(y + h*k2/2)
+        k4 = f(y + h*k3)
+        return expand((k1 + 2*k2 + 2*k3 + k4)/6)
+
+    def f(y):
+        return Matrix([\
+            clip_n(y[1]),\
+            clip_n(-y[0] - eps*y[0]**3),\
+        ])
+
+    set_clip(7, 6, Rational(0, 1))
+    r = RungeKutta4(f, Matrix([u, u1]))
+
+    F1 = clip((T(u, 1)-T(u, 0))/h - T(r[0], 0))
+    prnlatex(F1, eps)
+    print()
+
+    F2 = clip((T(u1, 1)-T(u1, 0))/h - T(r[1], 0))
+    prnlatex(F2, eps)
+    print()
+
+    f1 = NF(F1, [u.diff(t), u1.diff(t)], [F1, F2], head=False)
+    prnlatex(f1, eps)
+    print()
+
+    f2 = NF(F2, [u.diff(t), u1.diff(t)], [F1, F2], head=False)
+    prnlatex(f2, eps)
+    print()
+
+    F3 = clip((T(u1, 1)**2/2 + T(u, 1)**2/2 + eps*T(u, 1)**4/4) -\
+          (T(u1, 0)**2/2 + T(u, 0)**2/2 + eps*T(u, 0)**4/4))
+    prnlatex(F3, eps)
+    print()
+
+    f3 = NF(F3, [u.diff(t), u1.diff(t)], [f1, f2], head=False)
+    prnlatex(f3, eps)
+    print()
