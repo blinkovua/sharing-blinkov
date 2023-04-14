@@ -1,5 +1,3 @@
-# -*- coding: utf-8 -*-
-
 from sympy import *
 
 from monom import *
@@ -19,11 +17,18 @@ def set_clip(n, clp, p):
     global pda_n, pda_clp, pda_p
     pda_n, pda_clp, pda_p = n, clp, p
 
-def T(f, j1):
-    global pda_n, pda_clp, pda_p
+# def T(f, j1):
+#     global pda_n, pda_p
+#     return sum(\
+#         diff(f, pda_v, j)*(pda_h*(j1 - pda_p))**j/\
+#                  (factorial(j))\
+#         for j in range(pda_n))
+def T(f):
+    global pda_n, pda_v, pda_h, pda_p
+    g = f.subs(pda_v, pda_v - pda_p*pda_h)
     return sum(\
-        diff(f, pda_v, j)*(pda_h*(j1 - pda_p))**j/\
-                 (factorial(j))\
+        diff(g, pda_h, j).subs(pda_h, 0).doit()*pda_h**j/\
+                 (factorial(j))
         for j in range(pda_n))
 
 def clip(f):
@@ -134,40 +139,40 @@ def prn(a, p=None):
 def prnlatex(a, p=None):
     if p:
         print(latex(compact(a[0]).collect(p, factor)))
-        print(r"+%s\big(" % pda_h)
+        print(r"+%s\left(" % pda_h)
         print(latex(compact(a[1]).collect(p, factor)))
-        print(r"\big)")
+        print(r"\right)")
         for i in range(2, pda_clp):
-            print(r"+%s^%d\big(" % (pda_h, i))
+            print(r"+%s^%d\left(" % (pda_h, i))
             print(latex(compact(a[i]).collect(p, factor)))
-            print(r"\big)")
+            print(r"\right)")
     else:
         print(latex(compact(a[0]).factor()))
-        print(r"+%s\big(" % pda_h)
+        print(r"+%s\left(" % pda_h)
         print(latex(compact(a[1]).factor()))
-        print(r"\big)")
+        print(r"\right)")
         for i in range(2, pda_clp):
-            print(r"+%s^%d\big(" % (pda_h, i))
+            print(r"+%s^%d\left(" % (pda_h, i))
             print(latex(compact(a[i]).factor()))
-            print(r"\big)")
+            print(r"\right)")
 
 
 if __name__ == '__main__':
     eps, t, h = symbols(r'\varepsilon, t, h', real=True)
-    u, u1 = (f(t) for f in symbols('u, u1', cls=Function))
+    u, u1 = symbols('u, u1', cls=Function)
 
-    eq = u.diff(t, 2)  + u + eps*u**3
+    eq = u(t).diff(t, 2)  + u(t) + eps*u(t)**3
     print(eq)
     print()
 
-    eq1 = (u.diff(t)**2/2 + u**2/2 + eps*u**4/4) - h
-    print(expand(eq1.diff(t) - eq*u.diff(t)))
+    eq1 = (u(t).diff(t)**2/2 + u(t)**2/2 + eps*u(t)**4/4) - h
+    print(expand(eq1.diff(t) - eq*u(t).diff(t)))
     print()
 
-    init((u, u1), t, h)
+    init((u(t), u1(t)), t, h)
     set_clip(8, 7, Rational(0, 1))
 
-    print(expand((T(u, 1)-T(u, -1))/(2*h)))
+    print(expand(T(u(t+h))-T(u(t)))/(2*h))
     print()
 
     def RungeKutta4(f, y):
@@ -184,29 +189,29 @@ if __name__ == '__main__':
         ])
 
     set_clip(7, 6, Rational(0, 1))
-    r = RungeKutta4(f, Matrix([u, u1]))
+    r = RungeKutta4(f, Matrix([u(t), u1(t)]))
 
-    F1 = clip((T(u, 1)-T(u, 0))/h - T(r[0], 0))
+    F1 = clip((T(u(t+h))-T(u(t)))/h - T(r[0]))
     prnlatex(F1, eps)
     print()
 
-    F2 = clip((T(u1, 1)-T(u1, 0))/h - T(r[1], 0))
+    F2 = clip((T(u1(t+h))-T(u1(t)))/h - T(r[1]))
     prnlatex(F2, eps)
     print()
 
-    f1 = NF(F1, [u.diff(t), u1.diff(t)], [F1, F2], head=False)
+    f1 = NF(F1, [u(t).diff(t), u1(t).diff(t)], [F1, F2], head=False)
     prnlatex(f1, eps)
     print()
 
-    f2 = NF(F2, [u.diff(t), u1.diff(t)], [F1, F2], head=False)
+    f2 = NF(F2, [u(t).diff(t), u1(t).diff(t)], [F1, F2], head=False)
     prnlatex(f2, eps)
     print()
 
-    F3 = clip((T(u1, 1)**2/2 + T(u, 1)**2/2 + eps*T(u, 1)**4/4) -\
-          (T(u1, 0)**2/2 + T(u, 0)**2/2 + eps*T(u, 0)**4/4))
+    F3 = clip((T(u1(t+h))**2/2 + T(u(t+h))**2/2 + eps*T(u(t+h))**4/4) -\
+          (T(u1(t))**2/2 + T(u(t))**2/2 + eps*T(u(t))**4/4))
     prnlatex(F3, eps)
     print()
 
-    f3 = NF(F3, [u.diff(t), u1.diff(t)], [f1, f2], head=False)
+    f3 = NF(F3, [u(t).diff(t), u1(t).diff(t)], [f1, f2], head=False)
     prnlatex(f3, eps)
     print()
